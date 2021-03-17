@@ -371,3 +371,82 @@ TEST(Global, Stress)
 	for (int i = 0; i < 1000; ++i)
 		tree.insert({rand() % 1000000, rand()});
 }
+
+TEST(Functions, SequenceInsert)
+{
+	int n = 5000;
+	auto tree = avl_tree<int, int>();
+	for (int i = 0; i < n; ++i)
+	{
+		auto value = std::rand();
+		tree.insert(std::pair<int, int>(i, value));
+	}
+	EXPECT_TRUE(tree.get_height() <= 1.44 * std::log2(n));
+	auto it = tree.begin();
+	auto last_key = it->first;
+	while (++it != tree.end())
+	{
+		EXPECT_TRUE(last_key <= it->first);
+	}
+}
+
+TEST(Consistency, First)
+{
+	auto tree = avl_tree<int, int>();
+	tree.insert(std::pair<int, int>(1, 2));
+	tree.insert(std::pair<int, int>(3, 4));
+	tree.insert(std::pair<int, int>(5, 6));
+
+	auto it = tree.begin();
+
+	++it;
+
+	EXPECT_TRUE(it->first == 3);
+	EXPECT_TRUE(it->second == 4);
+
+	tree.erase(3);
+
+	++it;
+
+	EXPECT_TRUE(it->first == 5);
+	EXPECT_TRUE(it->second == 6);
+}
+
+TEST(Consistency, Second)
+{
+	int n = 5000;
+	auto tree = avl_tree<int, int>();
+	for (int i = 0; i < n; ++i)
+	{
+		auto key = std::rand() % 5000;
+		auto value = std::rand();
+		tree.insert(std::pair<int, int>(key, value));
+	}
+
+	auto its = std::vector<avl_tree<int, int>::iterator>();
+	for (int i = 0; i < n; ++i)
+	{
+		auto it = tree.begin();
+		auto steps = std::rand() % 2000;
+		for (int j = 1; j < steps; ++j)
+		{
+			++it;
+			if (it == tree.end()) break;
+		}
+		its.push_back(it);
+	}
+
+	for (int i = 0; i < n; ++i)
+	{
+		auto key = std::rand() % 5000;
+		tree.erase(key);
+	}
+
+	for (auto it : its)
+	{
+		while (it != tree.end())
+		{
+			++it;
+		}
+	}
+}
