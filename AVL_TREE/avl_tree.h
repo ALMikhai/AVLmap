@@ -781,9 +781,10 @@ namespace avl_tree_map
 		std::tuple<node_type*, node_type*> erase_node_from_tree(node_type* node)
 		{
 			auto to_delete = node;
-			auto to_replace = node;
-			node_type* next;
-			node_type* to_rebalance;
+			node_type* to_replace = nullptr;
+			node_type* to_replace_child = nullptr;
+			node_type* to_rebalance = nullptr;
+			node_type* next = nullptr;
 
 			if (node == max_node_)
 			{
@@ -802,8 +803,6 @@ namespace avl_tree_map
 			}
 			else
 			{
-				auto to_delete_parent = node->get_parent();
-
 				if (to_delete->get_left() != nullptr || to_delete->get_right() != nullptr)
 				{
 					auto to_replace_iterator = iterator(node);
@@ -811,10 +810,24 @@ namespace avl_tree_map
 					if (to_delete->get_left() != nullptr)
 					{
 						--to_replace_iterator;
+
+						while (to_replace_iterator.node_->get_right() != nullptr)
+						{
+							++to_replace_iterator;
+						}
+
+						to_replace_child = to_replace_iterator.node_->get_left();
 					}
 					else
 					{
 						++to_replace_iterator;
+
+						while (to_replace_iterator.node_->get_left() != nullptr)
+						{
+							--to_replace_iterator;
+						}
+
+						to_replace_child = to_replace_iterator.node_->get_right();
 					}
 
 					to_replace = to_replace_iterator.node_;
@@ -823,21 +836,9 @@ namespace avl_tree_map
 					if (to_replace_parent != nullptr)
 					{
 						if (to_replace_parent->get_left() == to_replace)
-							to_replace_parent->set_left(nullptr);
+							to_replace_parent->set_left(to_replace_child);
 						else
-							to_replace_parent->set_right(nullptr);
-					}
-
-					if (to_delete_parent != nullptr)
-					{
-						if (to_delete_parent->get_left() == to_delete)
-							to_delete_parent->set_left(to_replace);
-						else
-							to_delete_parent->set_right(to_replace);
-					}
-					else
-					{
-						root_ = to_replace;
+							to_replace_parent->set_right(to_replace_child);
 					}
 
 					to_replace->set_left(to_delete->get_left());
@@ -846,22 +847,22 @@ namespace avl_tree_map
 
 					to_rebalance = to_replace;
 				}
-				else
-				{
-					if (to_delete_parent != nullptr)
-					{
-						if (to_delete_parent->get_left() == to_delete)
-							to_delete_parent->set_left(nullptr);
-						else
-							to_delete_parent->set_right(nullptr);
 
+				auto to_delete_parent = node->get_parent();
+
+				if (to_delete_parent != nullptr)
+				{
+					if (to_delete_parent->get_left() == to_delete)
+						to_delete_parent->set_left(to_replace);
+					else
+						to_delete_parent->set_right(to_replace);
+
+					if (to_delete->get_left() == nullptr && to_delete->get_right() == nullptr)
 						to_rebalance = to_delete_parent;
-					}
 				}
 			}
-
+			
 			allocator_.deallocate(to_delete, 1);
-
 			return std::make_tuple(next, to_rebalance);
 		}
 
