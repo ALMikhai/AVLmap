@@ -16,12 +16,13 @@ namespace avl_tree_map
 		using size_type = long;
 
 		avl_tree_node() noexcept : key_value_pair_(value_type()), parent_(nullptr), left_(nullptr), right_(nullptr),
-		                           height_(0)
+		                           next_(nullptr), ref_count_(0), deleted_(false), height_(0)
 		{
 		}
 
 		avl_tree_node(const value_type& x) : key_value_pair_(value_type(x)), parent_(nullptr), left_(nullptr),
-		                                     right_(nullptr), height_(1)
+		                                     right_(nullptr), next_(nullptr), ref_count_(0), deleted_(false),
+		                                     height_(1)
 		{
 		}
 
@@ -71,6 +72,15 @@ namespace avl_tree_map
 			parent_ = node;
 		}
 
+		void set_next(avl_tree_node* node)
+		{
+			next_ = node;
+			if (get_ref_count() != 0)
+			{
+				next_->increment_ref_count();
+			}
+		}
+
 		avl_tree_node* get_left()
 		{
 			return left_;
@@ -86,11 +96,48 @@ namespace avl_tree_map
 			return parent_;
 		}
 
+		avl_tree_node* get_next()
+		{
+			return next_;
+		}
+
+		size_type get_ref_count()
+		{
+			return ref_count_;
+		}
+
+		void increment_ref_count()
+		{
+			++ref_count_;
+		}
+
+		void decrement_ref_count()
+		{
+			--ref_count_;
+			if (ref_count_ == 0 && next_ != nullptr)
+			{
+				next_->decrement_ref_count();
+			}
+		}
+
+		bool is_deleted()
+		{
+			return deleted_;
+		}
+
+		void set_deleted(bool cond)
+		{
+			deleted_ = cond;
+		}
+
 	private:
 		value_type key_value_pair_;
 		avl_tree_node* parent_;
 		avl_tree_node* left_;
 		avl_tree_node* right_;
+		avl_tree_node* next_;
+		size_type ref_count_;
+		bool deleted_;
 		size_type height_;
 
 		void height_update()

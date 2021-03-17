@@ -3,6 +3,7 @@
 #include <iterator>
 #include <limits>
 #include <stdexcept>
+#include <list>
 #include "avl_tree_node.h"
 
 namespace avl_tree_map
@@ -60,12 +61,18 @@ namespace avl_tree_map
 
 		avl_tree_iterator() noexcept = default;
 
-		avl_tree_iterator(const avl_tree_iterator& other) noexcept : node_(other.node_)
+		avl_tree_iterator(Node* node) : node_(node)
+		{
+			node_->increment_ref_count();
+		}
+
+		avl_tree_iterator(const avl_tree_iterator& other) noexcept : avl_tree_iterator(other.node_)
 		{
 		}
 
-		avl_tree_iterator(Node* node) : node_(node)
+		~avl_tree_iterator()
 		{
+			node_->decrement_ref_count();
 		}
 
 		reference operator*() const
@@ -80,23 +87,34 @@ namespace avl_tree_map
 
 		avl_tree_iterator& operator++()
 		{
-			if (node_->get_right() != nullptr)
+			node_->decrement_ref_count();
+
+			if (node_->is_deleted())
 			{
-				node_ = node_->get_right();
-				while (node_->get_left() != nullptr)
-					node_ = node_->get_left();
+				node_ = node_->get_next();
 			}
 			else
 			{
-				Node* tmp;
-				while (node_->get_parent() != nullptr)
+				if (node_->get_right() != nullptr)
 				{
-					tmp = node_;
-					node_ = node_->get_parent();
-					if (tmp == node_->get_left())
-						break;
+					node_ = node_->get_right();
+					while (node_->get_left() != nullptr)
+						node_ = node_->get_left();
+				}
+				else
+				{
+					Node* tmp;
+					while (node_->get_parent() != nullptr)
+					{
+						tmp = node_;
+						node_ = node_->get_parent();
+						if (tmp == node_->get_left())
+							break;
+					}
 				}
 			}
+
+			node_->increment_ref_count();
 			return *this;
 		}
 
@@ -109,23 +127,34 @@ namespace avl_tree_map
 
 		avl_tree_iterator& operator--()
 		{
-			if (node_->get_left() != nullptr)
+			node_->decrement_ref_count();
+
+			if (node_->is_deleted())
 			{
-				node_ = node_->get_left();
-				while (node_->get_right() != nullptr)
-					node_ = node_->get_right();
+				node_ = node_->get_next();
 			}
 			else
 			{
-				Node* tmp;
-				while (node_->get_parent() != nullptr)
+				if (node_->get_left() != nullptr)
 				{
-					tmp = node_;
-					node_ = node_->get_parent();
-					if (tmp == node_->get_right())
-						break;
+					node_ = node_->get_left();
+					while (node_->get_right() != nullptr)
+						node_ = node_->get_right();
+				}
+				else
+				{
+					Node* tmp;
+					while (node_->get_parent() != nullptr)
+					{
+						tmp = node_;
+						node_ = node_->get_parent();
+						if (tmp == node_->get_right())
+							break;
+					}
 				}
 			}
+
+			node_->increment_ref_count();
 			return *this;
 		}
 
@@ -167,12 +196,18 @@ namespace avl_tree_map
 
 		avl_tree_const_iterator() noexcept = default;
 
-		avl_tree_const_iterator(const avl_tree_const_iterator& other) noexcept : node_(other.node_)
+		avl_tree_const_iterator(const avl_tree_iterator<ValueType, Node>& other) noexcept : node_(other.node_)
+		{
+			node_->increment_ref_count();
+		}
+
+		avl_tree_const_iterator(const avl_tree_const_iterator& other) noexcept : avl_tree_const_iterator(other.node_)
 		{
 		}
 
-		avl_tree_const_iterator(const avl_tree_iterator<ValueType, Node>& other) noexcept : node_(other.node_)
+		~avl_tree_const_iterator()
 		{
+			node_->decrement_ref_count();
 		}
 
 		reference operator*() const
@@ -187,23 +222,34 @@ namespace avl_tree_map
 
 		avl_tree_const_iterator& operator++()
 		{
-			if (node_->get_right() != nullptr)
+			node_->decrement_ref_count();
+
+			if (node_->is_deleted())
 			{
-				node_ = node_->get_right();
-				while (node_->get_left() != nullptr)
-					node_ = node_->get_left();
+				node_ = node_->get_next();
 			}
 			else
 			{
-				Node* tmp;
-				while (node_->get_parent() != nullptr)
+				if (node_->get_right() != nullptr)
 				{
-					tmp = node_;
-					node_ = node_->get_parent();
-					if (tmp == node_->get_left())
-						break;
+					node_ = node_->get_right();
+					while (node_->get_left() != nullptr)
+						node_ = node_->get_left();
+				}
+				else
+				{
+					Node* tmp;
+					while (node_->get_parent() != nullptr)
+					{
+						tmp = node_;
+						node_ = node_->get_parent();
+						if (tmp == node_->get_left())
+							break;
+					}
 				}
 			}
+
+			node_->increment_ref_count();
 			return *this;
 		}
 
@@ -216,23 +262,34 @@ namespace avl_tree_map
 
 		avl_tree_const_iterator& operator--()
 		{
-			if (node_->get_left() != nullptr)
+			node_->decrement_ref_count();
+
+			if (node_->is_deleted())
 			{
-				node_ = node_->get_left();
-				while (node_->get_right() != nullptr)
-					node_ = node_->get_right();
+				node_ = node_->get_next();
 			}
 			else
 			{
-				Node* tmp;
-				while (node_->get_parent() != nullptr)
+				if (node_->get_left() != nullptr)
 				{
-					tmp = node_;
-					node_ = node_->get_parent();
-					if (tmp == node_->get_right())
-						break;
+					node_ = node_->get_left();
+					while (node_->get_right() != nullptr)
+						node_ = node_->get_right();
+				}
+				else
+				{
+					Node* tmp;
+					while (node_->get_parent() != nullptr)
+					{
+						tmp = node_;
+						node_ = node_->get_parent();
+						if (tmp == node_->get_right())
+							break;
+					}
 				}
 			}
+
+			node_->increment_ref_count();
 			return *this;
 		}
 
@@ -281,7 +338,8 @@ namespace avl_tree_map
 		using size_type = std::size_t;
 
 		avl_tree() : root_(nullptr), min_node_(nullptr), max_node_(nullptr), right_border_(new node_type()),
-		             size_(0), allocator_(allocator_type()), key_compare_(key_compare())
+		             size_(0), allocator_(allocator_type()), key_compare_(key_compare()),
+		             deleted_nodes_(std::list<node_type*>())
 		{
 		}
 
@@ -324,6 +382,7 @@ namespace avl_tree_map
 		~avl_tree()
 		{
 			clear();
+			full_garbage_delete();
 			delete right_border_;
 		}
 
@@ -342,7 +401,7 @@ namespace avl_tree_map
 
 		avl_tree& operator=(std::initializer_list<value_type> l)
 		{
-			auto tmp(l);
+			avl_tree tmp(l);
 			swap(tmp);
 			return *this;
 		}
@@ -471,6 +530,7 @@ namespace avl_tree_map
 			std::swap(size_, x.size_);
 			std::swap(allocator_, x.allocator_);
 			std::swap(key_compare_, x.key_compare_);
+			deleted_nodes_.swap(x.deleted_nodes_);
 		}
 
 		mapped_type& operator[](const key_type& k)
@@ -643,6 +703,11 @@ namespace avl_tree_map
 			return true;
 		}
 
+		size_type get_height()
+		{
+			return root_->get_height();
+		}
+
 	private:
 		node_type* root_;
 		node_type* min_node_;
@@ -651,6 +716,7 @@ namespace avl_tree_map
 		size_type size_;
 		allocator_type allocator_;
 		key_compare key_compare_;
+		std::list<node_type*> deleted_nodes_;
 
 		std::pair<iterator, bool> common_insert(const value_type& x)
 		{
@@ -687,6 +753,12 @@ namespace avl_tree_map
 			size_--;
 			update_min_max_nodes();
 			connect_border();
+
+			// TODO Need to optimized.
+			if (deleted_nodes_.size() > 100)
+			{
+				garbage_delete();
+			}
 
 			return iterator(next);
 		}
@@ -861,8 +933,14 @@ namespace avl_tree_map
 						to_rebalance = to_delete_parent;
 				}
 			}
-			
-			allocator_.deallocate(to_delete, 1);
+
+			to_delete->set_left(nullptr);
+			to_delete->set_right(nullptr);
+			to_delete->set_parent(nullptr);
+			to_delete->set_next(next);
+			to_delete->set_deleted(true);
+			deleted_nodes_.push_back(to_delete);
+
 			return std::make_tuple(next, to_rebalance);
 		}
 
@@ -976,6 +1054,31 @@ namespace avl_tree_map
 			if (size_ > 0)
 			{
 				max_node_->set_right(nullptr);
+			}
+		}
+
+		void garbage_delete()
+		{
+			for (auto i = deleted_nodes_.cbegin(); i != deleted_nodes_.cend();)
+			{
+				if ((*i)->get_ref_count() == 0)
+				{
+					allocator_.deallocate((*i), 1);
+					i = deleted_nodes_.erase(i);
+				}
+				else
+				{
+					++i;
+				}
+			}
+		}
+
+		void full_garbage_delete()
+		{
+			for (auto i = deleted_nodes_.cbegin(); i != deleted_nodes_.cend();)
+			{
+				allocator_.deallocate((*i), 1);
+				i = deleted_nodes_.erase(i);
 			}
 		}
 	};
